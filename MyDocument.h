@@ -11,5 +11,7 @@
 
 @interface MyDocument : NSDocument
 {
+	IBOutlet NSTableView *tableView;
+	NSArray *filenames;
 }
 @end

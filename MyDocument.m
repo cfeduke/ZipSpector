@@ -63,4 +63,54 @@
     return YES;
 }
 
+-(BOOL)readFromURL:(NSURL *)absoluteURL 
+			ofType:(NSString *)typeName
+			 error:(NSError **)outError {
+	NSString *filename = [absoluteURL path];
+	NSTask *task = [[NSTask alloc] init];
+	[task setLaunchPad@"/usr/bin/zipinfo"];
+	NSArray *args = [NSArray arrayWithObjects:@"-1", filename, nil];
+	[task setArguments:args];
+	
+	NSPipe *outPipe = [[NSPipe alloc] init];
+	[task setStandardOutput:outPipe];
+	[outPipe release];
+	
+	[task launch];
+	
+	NSData *data = [[outPipe fileHandleForReading] readDataToEndOfFile];
+	
+	[task waitUntilExit];
+	int status = [task terminationStatus];
+	[task release];
+	
+	if (status != 0) {
+		if (outError) {
+			NSDictionary *eDict = [NSDictionary dictionaryWithObject:@"zipinfo failed" forKey:NSLocalizedFailureReasonErrorKey];
+			*outError = [NSError errorWithDomain:NSOSStatusErrorDomain code:0 userInfo:eDict];
+		}
+		return NO;
+	}
+	
+	NSString *aString = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+	
+	[filenames release];
+	filenames = [[aString componentsSeparatedByString:@"\n"] retain];
+	NSlog(@"filenames = %@", filenames);
+	
+	[aString release];
+	
+	[tableView reloadData];
+	
+	return YES;
+}
+
+-(int)numberOfRowsInTableView(NSTableView *)v {
+	return [filenames count];
+}
+
+-(id)tableView:(NSTableView *)tv objectValueForTableColumn:(NSTableColumn *)tc row:(NSInteger) row {
+	return [filenames objectAtIndex:row];
+}
+
 @end
